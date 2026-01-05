@@ -17,15 +17,22 @@ import { BehaviorSubject, Observable } from 'rxjs';
 })
 export class FirebaseService implements OnDestroy {
   firestore = inject(Firestore);
-  /* unsubscribe: () => void; */
+
   contactList: ContactInterface[] = [];
-  taskList: TaskInterface[] = [];       // für add-task
-  unsubscribeContacts: () => void;
-  unsubscribeTasks: () => void; 
+  taskList: TaskInterface[] = [];
+  
+  unsubscribeContacts: () => void = () => {};
+  unsubscribeTasks: () => void = () => {};
+
   private taskListSubject = new BehaviorSubject<TaskInterface[]>([]);
   taskList$: Observable<TaskInterface[]> = this.taskListSubject.asObservable();
 
   constructor() {
+  }
+
+  connectToDatabase(){
+    this.disconnect();
+
     this.unsubscribeContacts = onSnapshot(
       collection(this.firestore, 'contacts'),
       (contacts) => {
@@ -36,8 +43,12 @@ export class FirebaseService implements OnDestroy {
           );
         });
         this.contactList.sort((a, b) => a.name.localeCompare(b.name));
+      },
+      (error) => {
+        console.error('Error fetching contacts:', error);
       }
     );
+    
     this.unsubscribeTasks = onSnapshot(
       collection(this.firestore, 'tasks'),
       (tasks) => {
@@ -48,10 +59,25 @@ export class FirebaseService implements OnDestroy {
           );
         });
         this.taskListSubject.next([...this.taskList]);
-        // this.taskList.sort((a, b) => a.title.localeCompare(b.title));
+      },
+      (error) => {
+        console.error('Error fetching tasks:', error);
       }
     );
   }
+
+  disconnect(){
+    this.unsubscribeContacts();
+    this.unsubscribeTasks();
+
+    this.contactList = [];
+    this.taskList = [];
+    this.taskListSubject.next([]);
+  }
+  
+  ngOnDestroy() {
+    this.disconnect();
+    }
 
   //#region contacs
   setContactObject(id: string, obj: any): ContactInterface {
@@ -79,12 +105,6 @@ export class FirebaseService implements OnDestroy {
     await deleteDoc(doc(this.firestore, 'contacts', id));
   }
   //#endregion
-
-  ngOnDestroy() {
-    if (this.unsubscribeContacts) this.unsubscribeContacts();
-    if (this.unsubscribeTasks) this.unsubscribeTasks();
-  }
-
 
   //#region tasks
   setTaskObject(id: string, obj: any): TaskInterface {

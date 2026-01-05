@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { Auth, createUserWithEmailAndPassword, getAuth, signInAnonymously, signInWithEmailAndPassword, signOut, updateProfile } from '@angular/fire/auth';
+import { Auth, createUserWithEmailAndPassword, signInAnonymously, signInWithEmailAndPassword, updateProfile, onAuthStateChanged } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 import { from } from 'rxjs';
+import { FirebaseService } from './firebase.service';
 
 
 @Injectable({
@@ -10,8 +11,17 @@ import { from } from 'rxjs';
 export class AuthService {
   firebaseAuth = inject(Auth);
   private router = inject(Router);
+  private firebaseService = inject(FirebaseService);
 
-  constructor() { }
+  constructor() { 
+    onAuthStateChanged(this.firebaseAuth, (user) => {
+      if (user) {
+        this.firebaseService.connectToDatabase();
+      } else {
+        this.firebaseService.disconnect();
+      }
+    });
+  }
 
   signUp(email: string, password: string, username: string) {
     return createUserWithEmailAndPassword(this.firebaseAuth, email, password)
@@ -23,21 +33,29 @@ export class AuthService {
   }
 
   login(email: string, password: string) {
-    const promise = signInWithEmailAndPassword(this.firebaseAuth, email, password);
-    return from(promise); // Promise in Observable umwandeln
+    const promise = signInWithEmailAndPassword(this.firebaseAuth, email, password)
+    .then((userCredential) => {
+      this.firebaseService.connectToDatabase();
+      return userCredential;
+    });
+    return from(promise)
   }
 
-  // brauchen wir nicht wirklich lieber ein acc mit guest bei sign up erstellen und dann auf guest login button diesen acc einlogen?!
   guestLogin() {
-    return signInAnonymously(this.firebaseAuth);
+    return signInAnonymously(this.firebaseAuth)
+    .then((userCredential) => {
+      this.firebaseService.connectToDatabase();
+      return userCredential;
+    });
   }
 
   logout() {
+    this.firebaseService.disconnect();
     return this.firebaseAuth.signOut().then(() => {
       this.router.navigateByUrl('/');
     });
   }
-  // um aktuellen eingeloggeden User zu sehen
+
   loggedInUsername(): string | null {
     return this.firebaseAuth.currentUser?.email || null;
   }
