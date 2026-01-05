@@ -5,6 +5,7 @@ import { AuthService } from '../services/auth.service';
 import { debounceTime} from 'rxjs';
 import {takeUntilDestroyed} from '@angular/core/rxjs-interop';
 import { Firestore, collection, addDoc } from '@angular/fire/firestore';
+import { SharedService } from '../services/shared.service';
 
 @Component({
   selector: 'app-sign-up',
@@ -17,6 +18,7 @@ export class SignUpComponent {
   private firestore = inject(Firestore);
   private router = inject(Router);
   private draftKey = 'signUpForm';
+  public sharedService = inject(SharedService);
 
   signupForm!: FormGroup;
   isSubmitting = false;

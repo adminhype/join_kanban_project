@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SharedService } from '../../services/shared.service';
 
 @Component({
   selector: 'app-side-bar',
@@ -8,4 +9,5 @@ import { RouterLink } from '@angular/router';
   styleUrl: './side-bar.component.scss'
 })
 export class SideBarComponent {
+  public sharedService = inject(SharedService);
 }

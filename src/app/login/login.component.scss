@@ -29,6 +29,7 @@
 .logo{
     animation: logo-slide 2s ease forwards;
     z-index: 2;
+    cursor: pointer;
     
     @media(max-width: 575px){
         img{

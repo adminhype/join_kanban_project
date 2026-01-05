@@ -1,6 +1,9 @@
 <section>
     <div class="side-bar">
-        <img src="assets/images/join-logo-light.png" alt="">
+        <img 
+            src="assets/images/join-logo-light.png"
+            alt="logo"
+            (click)="sharedService.reloadPage()">
         <div id="menu">
             <div class="menu-links">
                 <div [routerLink]="['/summary']" class="header-links">
