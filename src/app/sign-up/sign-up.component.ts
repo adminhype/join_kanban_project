@@ -35,15 +35,35 @@ export class SignUpComponent {
   private buildForm() {
     this.signupForm = this.fb.nonNullable.group(
       {
-        name: ['', [Validators.required]],
+        name: ['', [Validators.required, Validators.pattern(/^[a-zA-ZäöüÄÖÜß\s-]+$/)]],
         email: ['', [Validators.required, Validators.email]],
-        password: ['', [Validators.required, Validators.minLength(8)]],
+        password: ['', [Validators.required, Validators.minLength(8),Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/)]],
         confirmPassword: ['', [Validators.required]],
         policy: [false, [Validators.requiredTrue]],
       }, {
         validators: [SignUpComponent.passwordsMatchValidator],
       });
     }
+  getPasswordIcon(field: 'password' | 'confirmPassword'): string {
+    const value = this.signupForm.get(field)?.value;
+    const isVisible = field === 'password' ? this.showPassword : this.showConfirmPassword;
+
+    if (!value || value.length === 0) {
+      return './assets/icons/lock.png';
+    }
+    if (isVisible) {
+      return './assets/icons/visibility.png';
+    }
+    return './assets/icons/visibility_off.png';
+  }
+
+  togglePasswordVisibility(field: 'password' | 'confirmPassword') {
+    if (field === 'password') {
+      this.showPassword = !this.showPassword;
+    } else {
+      this.showConfirmPassword = !this.showConfirmPassword;
+    }
+  }
     
   private restoreDraft(){
     const saved = sessionStorage.getItem(this.draftKey);
@@ -63,20 +83,15 @@ export class SignUpComponent {
     sessionStorage.removeItem(this.draftKey);
   }
 
-  togglePasswordVisibility(field: 'password' | 'confirmPassword') {
-  if (field === 'password') {
-    this.showPassword = !this.showPassword;
-  } else {
-    this.showConfirmPassword = !this.showConfirmPassword;
-  }
-}
-
   onSubmit() {
     if (this.signupForm.invalid) {
       this.signupForm.markAllAsTouched();
       return;
     }
-    const { name, email, password } = this.signupForm.value as { name: string; email: string; password: string };
+    this.isSubmitting = true;
+    this.signupForm.disable({emitEvent: false});
+
+    const { name, email, password } = this.signupForm.getRawValue();
 
     this.authService.signUp(email, password, name)
       .then(() => {
@@ -84,30 +99,24 @@ export class SignUpComponent {
         return addDoc(contactsRef, { name, email, phone: '' });
       })
       .then(() => {
-        this.router.navigateByUrl('/login');
+        this.showSuccessMessage  = true;
+        setTimeout(() => {
+          this.goToLogin();
+        }, 1500);
       })
       .catch(error => {
-        console.error('Fehler beim SignUp:', error);
+        console.error('miss at SignUp:', error);
+        this.isSubmitting = false;
+        this.signupForm.enable({ emitEvent: false });
       });
-
-    this.isSubmitting = true;
-    this.signupForm.disable({ emitEvent: false });
-
-    //  Overlay
-    this.showSuccessMessage  = true;
-
-    // Nach 1s zur Login-Page
-    setTimeout(() => {
-      this.goToLogin();
-    }, 1500);
   }
 
   goToLogin() {
-    this.router.navigateByUrl('/login');
-    this.signupForm.reset();
-    this.isSubmitting = false;
-    this.showSuccessMessage = false;
     this.clearDraft();
+    this.showSuccessMessage = false;
+    this.isSubmitting = false;
+    this.signupForm.reset();
+    this.router.navigateByUrl('/login');
   }
     static passwordsMatchValidator(group: AbstractControl): ValidationErrors | null {
     const pw = group.get('password')?.value;
